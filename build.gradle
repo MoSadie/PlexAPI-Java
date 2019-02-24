@@ -1,0 +1,36 @@
+plugins {
+    id 'java-library'
+    id 'maven'
+}
+
+// Project Info for Maven
+group = "io.github.mosadie"
+archivesBaseName = "PlexAPI"
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.httpcomponents:fluent-hc:4.5.7'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.7'
+}
+
+// Create Sources Jar
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+// Create Javadoc Jar
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// Additional artifacts to publish for JitPack
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
