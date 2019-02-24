@@ -3,11 +3,6 @@ plugins {
     id 'maven'
 }
 
-// Project Info for Maven
-group = "io.github.mosadie"
-archivesBaseName = "PlexAPI"
-version = '1.0'
-
 repositories {
     mavenCentral()
 }
