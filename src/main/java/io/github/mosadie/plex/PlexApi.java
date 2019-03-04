@@ -120,12 +120,8 @@ public class PlexApi {
                 Document localDocument = Request.Get("http://localhost:32400/")
                     .addHeader("X-Plex-Token", AUTH_TOKEN)
                     .execute().handleResponse(responseHandler);
-                if (localDocument.getDocumentElement().getTagName().equals("MediaElement")) {
-                    PlexServer server = new PlexServer(this, "127.0.0.1", "32400", "0", "local");
-                    serverList.add(server);
-                } else {
-                    System.out.println("Local server not found.");
-                }
+                PlexServer server = new PlexServer(this, "127.0.0.1", "32400", "0", "local");
+                serverList.add(server);
             } catch (Exception e) {
                 System.out.println("Exception occured while attempting to find localhost server: " + e.getLocalizedMessage());
                 e.printStackTrace();
