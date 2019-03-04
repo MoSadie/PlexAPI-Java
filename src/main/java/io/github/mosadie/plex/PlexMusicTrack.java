@@ -13,8 +13,8 @@ public class PlexMusicTrack {
         this.partialUrl = partialUrl;
     }
 
-    public String getMediaFileURL() {
-        return server.getUrl(partialUrl);
+    public String getMediaFileURL(boolean includeToken) {
+        return server.getUrl(partialUrl, includeToken);
     }
 
     public String getTitle() {

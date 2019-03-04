@@ -14,12 +14,14 @@ public class PlexServer {
     private final String address;
     private final String port;
     private final String updatedAt;
+    private final String uniqueId;
 
-    public PlexServer(PlexApi plex, String address, String port, String updatedAt) {
+    public PlexServer(PlexApi plex, String address, String port, String updatedAt, String uniqueId) {
         this.plex = plex;
         this.address = address;
         this.port = port;
         this.updatedAt = updatedAt;
+        this.uniqueId = uniqueId;
     }
 
     public String toString() {
@@ -27,11 +29,16 @@ public class PlexServer {
     }
 
     public String getUrl() {
-        return getUrl("");
+        return getUrl("", false);
     }
 
     public String getUrl(String suffix) {
-        return "https://" + address + ":" + port + suffix;
+        return getUrl(suffix, false);
+    }
+
+    public String getUrl(String suffix, boolean includeToken) {
+        return "https://" + address + ":" + port + suffix +
+            (includeToken ? "?X-Plex-Token=" + plex.getHeaders().get("X-Plex-Token") : "");
     }
 
     public List<PlexLibrary> getLibraries() {

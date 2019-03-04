@@ -118,7 +118,7 @@ public class PlexApi {
             NodeList elementList = document.getDocumentElement().getElementsByTagName("Server");
             for (int i = 0; i < elementList.getLength(); i++) {
                 Element element = (Element)elementList.item(i);
-                PlexServer server = new PlexServer(this, element.getAttribute("address"), element.getAttribute("port"), element.getAttribute("updatedAt"));
+                PlexServer server = new PlexServer(this, element.getAttribute("address"), element.getAttribute("port"), element.getAttribute("updatedAt"), element.getAttribute("machineIdentifier"));
                 serverList.add(server);
             }
             return serverList;
