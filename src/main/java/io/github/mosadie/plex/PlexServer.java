@@ -37,7 +37,7 @@ public class PlexServer {
     }
 
     public String getUrl(String suffix, boolean includeToken) {
-        return "https://" + address + ":" + port + suffix +
+        return "http://" + address + ":" + port + suffix +
             (includeToken ? "?X-Plex-Token=" + plex.getHeaders().get("X-Plex-Token") : "");
     }
 
