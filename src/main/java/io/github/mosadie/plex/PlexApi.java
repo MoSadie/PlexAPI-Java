@@ -117,7 +117,7 @@ public class PlexApi {
             List<PlexServer> serverList = new ArrayList<>();
 
             try {
-                Document localDocument = Request.Get("https://localhost:32300/")
+                Document localDocument = Request.Get("https://localhost:32400/")
                     .addHeader("X-Plex-Token", AUTH_TOKEN)
                     .execute().handleResponse(responseHandler);
                 if (localDocument.getDocumentElement().getTagName().equals("MediaElement")) {
