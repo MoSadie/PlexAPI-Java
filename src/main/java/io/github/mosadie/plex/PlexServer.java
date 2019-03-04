@@ -1,5 +1,6 @@
 package io.github.mosadie.plex;
 
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,13 @@ public class PlexServer {
 
     public List<PlexMusicTrack> searchTracks(String query) {
         Map<String, String> headers = plex.getHeaders();
-        Request request = Request.Get(getUrl("/search?type=10&query=" + query));
+        String encodedQuery = query;
+        try {
+            encodedQuery = URLEncoder.encode(query, "UTF-8");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Request request = Request.Get(getUrl("/search?type=10&query=" + encodedQuery));
         Document document;
         for(String key : headers.keySet()) {
             request.addHeader(key, headers.get(key));
@@ -91,7 +98,7 @@ public class PlexServer {
         List<PlexMusicTrack> tracks = new ArrayList<>();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Element element = (Element)nodeList.item(i);
-            String url = ((Element)element.getFirstChild().getFirstChild()).getAttribute("key");
+            String url = element.getElementsByTagName("Part").item(0).getAttributes().getNamedItem("key").getNodeValue();
             PlexMusicTrack track = new PlexMusicTrack(this, element.getAttribute("title"), element.getAttribute("originalTitle"), url);
             tracks.add(track);
         }
