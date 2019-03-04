@@ -105,4 +105,8 @@ public class PlexServer {
 
         return tracks;
     }
+
+    public String getID() {
+        return uniqueId;
+    }
 }
