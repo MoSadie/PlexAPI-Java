@@ -123,8 +123,7 @@ public class PlexApi {
                 PlexServer server = new PlexServer(this, "127.0.0.1", "32400", "0", "local");
                 serverList.add(server);
             } catch (Exception e) {
-                System.out.println("Exception occured while attempting to find localhost server: " + e.getLocalizedMessage());
-                e.printStackTrace();
+                // Ignore, likely means no local server on this machine.
             }
 
             NodeList elementList = document.getDocumentElement().getElementsByTagName("Server");
