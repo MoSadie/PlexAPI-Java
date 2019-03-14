@@ -42,6 +42,15 @@ public class PlexServer {
             (includeToken ? "?X-Plex-Token=" + plex.getHeaders().get("X-Plex-Token") : "");
     }
 
+    public boolean canConnect() {
+        try {
+            Document document = Request.Get(getUrl("", true)).execute().handleResponse(plex.getResponseHandler());
+            return document != null && document.getDocumentElement().getTagName().equals("MediaContainer");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public List<PlexLibrary> getLibraries() {
         Map<String, String> headers = plex.getHeaders();
         Request request = Request.Get(getUrl("/library/sections"));

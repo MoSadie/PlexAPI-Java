@@ -121,7 +121,9 @@ public class PlexApi {
                     .addHeader("X-Plex-Token", AUTH_TOKEN)
                     .execute().handleResponse(responseHandler);
                 PlexServer server = new PlexServer(this, "127.0.0.1", "32400", "0", "local");
-                serverList.add(server);
+                if (server.canConnect()) {
+                    serverList.add(server);
+                }
             } catch (Exception e) {
                 // Ignore, likely means no local server on this machine.
             }
@@ -130,7 +132,12 @@ public class PlexApi {
             for (int i = 0; i < elementList.getLength(); i++) {
                 Element element = (Element)elementList.item(i);
                 PlexServer server = new PlexServer(this, element.getAttribute("address"), element.getAttribute("port"), element.getAttribute("updatedAt"), element.getAttribute("machineIdentifier"));
-                serverList.add(server);
+                PlexServer localServer = new PlexServer(this, element.getAttribute("localAddresses"), "32400", element.getAttribute("updatedAt"), "local-" + element.getAttribute("machineIdentifier"));
+                if (localServer.canConnect()) {
+                    serverList.add(localServer);
+                } else if (server.canConnect()) {
+                    serverList.add(server);
+                }
             }
             return serverList;
         } catch (Exception e) {
