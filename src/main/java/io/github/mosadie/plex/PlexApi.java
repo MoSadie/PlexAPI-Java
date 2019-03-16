@@ -116,18 +116,6 @@ public class PlexApi {
 
             List<PlexServer> serverList = new ArrayList<>();
 
-            try {
-                Document localDocument = Request.Get("http://localhost:32400/")
-                    .addHeader("X-Plex-Token", AUTH_TOKEN)
-                    .execute().handleResponse(responseHandler);
-                PlexServer server = new PlexServer(this, "127.0.0.1", "32400", "0", "local");
-                if (server.canConnect()) {
-                    serverList.add(server);
-                }
-            } catch (Exception e) {
-                // Ignore, likely means no local server on this machine.
-            }
-
             NodeList elementList = document.getDocumentElement().getElementsByTagName("Server");
             for (int i = 0; i < elementList.getLength(); i++) {
                 Element element = (Element)elementList.item(i);
