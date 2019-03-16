@@ -29,7 +29,6 @@ public class PlexApi {
     private final String PRODUCT_NAME;
     private final String PRODUCT_VERSION;
     private final String CLIENT_ID;
-    private final String USERNAME;
     private final String AUTH_TOKEN;
 
     private final ResponseHandler<Document> responseHandler = new ResponseHandler<Document>() {
@@ -80,7 +79,6 @@ public class PlexApi {
     }
     
     public PlexApi(String username, String password, String productName, String productVersion, String clientID) throws IOException, AuthenticationException {
-        USERNAME = username;
         PRODUCT_NAME = productName;
         PRODUCT_VERSION = productVersion;
         CLIENT_ID = clientID;
@@ -89,7 +87,7 @@ public class PlexApi {
             .addHeader("X-Plex-Product", PRODUCT_NAME)
             .addHeader("X-Plex-Version", PRODUCT_VERSION)
             .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
-            .bodyString("user[login]=" + USERNAME + "&user[password]=" + password, ContentType.APPLICATION_FORM_URLENCODED)//.bodyForm(Form.form().add("user[login]", USERNAME).add("user[password]", password).build())
+            .bodyString("user[login]=" + username + "&user[password]=" + password, ContentType.APPLICATION_FORM_URLENCODED)//.bodyForm(Form.form().add("user[login]", USERNAME).add("user[password]", password).build())
             .execute().handleResponse(responseHandler);
 
         if (document.getDocumentElement().getNodeName() != "user") {
