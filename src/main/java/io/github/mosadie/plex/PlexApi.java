@@ -25,14 +25,14 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class PlexApi {
-
+    
     private final String PRODUCT_NAME;
     private final String PRODUCT_VERSION;
     private final String CLIENT_ID;
-    private final String AUTH_TOKEN;
-
+    private String authToken;
+    
     private final ResponseHandler<Document> responseHandler = new ResponseHandler<Document>() {
-
+        
         public Document handleResponse(final HttpResponse response) throws IOException {
             StatusLine statusLine = response.getStatusLine();
             HttpEntity entity = response.getEntity();
@@ -42,8 +42,8 @@ public class PlexApi {
                     System.out.println();
                 }
                 throw new HttpResponseException(
-                        statusLine.getStatusCode(),
-                        statusLine.getReasonPhrase());
+                statusLine.getStatusCode(),
+                statusLine.getReasonPhrase());
             }
             if (entity == null) {
                 throw new ClientProtocolException("Response contains no content");
@@ -53,96 +53,158 @@ public class PlexApi {
                 DocumentBuilder docBuilder = dbfac.newDocumentBuilder();
                 // ContentType contentType = ContentType.getOrDefault(entity);
                 // if (!contentType.equals(ContentType.APPLICATION_XML)) {
-                //     throw new ClientProtocolException("Unexpected content type:" +
-                //         contentType);
-                // }
-                return docBuilder.parse(entity.getContent());
-            } catch (ParserConfigurationException ex) {
-                throw new IllegalStateException(ex);
-            } catch (SAXException ex) {
-                throw new ClientProtocolException("Malformed XML document", ex);
+                    //     throw new ClientProtocolException("Unexpected content type:" +
+                    //         contentType);
+                    // }
+                    return docBuilder.parse(entity.getContent());
+                } catch (ParserConfigurationException ex) {
+                    throw new IllegalStateException(ex);
+                } catch (SAXException ex) {
+                    throw new ClientProtocolException("Malformed XML document", ex);
+                }
             }
-        }
-    
+            
         };
-    
-    public PlexApi(String username, String password) throws IOException, AuthenticationException {
-        this(username, password, "PlexAPI-Java");
-    }
-    
-    public PlexApi(String username, String password, String productName) throws IOException, AuthenticationException {
-        this(username, password, productName, "0.0");
-    }
-    
-    public PlexApi(String username, String password, String productName, String productVersion) throws IOException, AuthenticationException {
-        this(username, password, productName, productVersion, "0");
-    }
-    
-    public PlexApi(String username, String password, String productName, String productVersion, String clientID) throws IOException, AuthenticationException {
-        PRODUCT_NAME = productName;
-        PRODUCT_VERSION = productVersion;
-        CLIENT_ID = clientID;
-
-        Document document = Request.Post("https://plex.tv/users/sign_in.xml")
-            .addHeader("X-Plex-Product", PRODUCT_NAME)
-            .addHeader("X-Plex-Version", PRODUCT_VERSION)
-            .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
-            .bodyString("user[login]=" + username + "&user[password]=" + password, ContentType.APPLICATION_FORM_URLENCODED)//.bodyForm(Form.form().add("user[login]", USERNAME).add("user[password]", password).build())
-            .execute().handleResponse(responseHandler);
-
-        if (document.getDocumentElement().getNodeName() != "user") {
-            throw new AuthenticationException(); //TODO Find a better exeception to throw.
+        
+        public PlexApi() throws IOException, AuthenticationException {
+            this("PlexAPI-Java", "0.0", "0.0");
         }
-
-        AUTH_TOKEN = document.getDocumentElement().getAttribute("authToken");
-    }
-
-    public List<PlexServer> getServers() {
-        try {
-            Document document = Request.Get("https://plex.tv/pms/servers.xml")
+        
+        public PlexApi(String productName, String productVersion, String clientID) {
+            PRODUCT_NAME = productName;
+            PRODUCT_VERSION = productVersion;
+            CLIENT_ID = clientID;
+        }
+        
+        public boolean authenticate(String username, String password) {
+            try {
+                Document document = Request.Post("https://plex.tv/users/sign_in.xml")
                 .addHeader("X-Plex-Product", PRODUCT_NAME)
                 .addHeader("X-Plex-Version", PRODUCT_VERSION)
                 .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
-                .addHeader("X-Plex-Token", AUTH_TOKEN)
+                .bodyString("user[login]=" + username + "&user[password]=" + password, ContentType.APPLICATION_FORM_URLENCODED)//.bodyForm(Form.form().add("user[login]", USERNAME).add("user[password]", password).build())
                 .execute().handleResponse(responseHandler);
+                
+                if (document.getDocumentElement().getNodeName() != "user") {
+                    System.out.println("ERROR: Failed auth to Plex.tv. Response: " + document.getTextContent());
+                    return false;
+                }
+                
+                authToken = document.getDocumentElement().getAttribute("authToken");
+                return true;
+            } catch (IOException e) {
+                System.out.println("ERROR: Failed auth to Plex.tv. Exception: " + e.toString());
+                return false;
+            }
+        }
 
-            if (document.getDocumentElement().getTagName() != "MediaContainer") {
-                System.out.println("An error occured trying to get servers.");
-                System.out.println(document.getTextContent()); //TODO check this.
+        public boolean authenticate(String authToken) {
+            if (testAuth(authToken)) {
+                this.authToken = authToken;
+                return true;
+            }
+            return false;
+        }
+
+        public String startPinAuth() {
+            try {
+                Document document = Request.Post("https://plex.tv/pins.xml")
+                .addHeader("X-Plex-Product", PRODUCT_NAME)
+                .addHeader("X-Plex-Version", PRODUCT_VERSION)
+                .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
+                .execute().handleResponse(getResponseHandler());
+
+                if (!document.getDocumentElement().getNodeName().equals("pin")) {
+                    System.out.println("ERROR: Something went wrong getting a id for pin auth.");
+                    return null;
+                }
+
+                String code = document.getDocumentElement().getElementsByTagName("code").item(0).getTextContent();
+                String id = document.getDocumentElement().getElementsByTagName("id").item(0).getTextContent();
+
+                PlexPinAuthThread pinAuthThread = new PlexPinAuthThread(id, this);
+                pinAuthThread.start();
+                return code;
+            } catch (Exception e) {
+                return "ERROR";
+            }
+        }
+        
+        public List<PlexServer> getServers() {
+            if (authToken == null) {
                 return null;
             }
-
-            List<PlexServer> serverList = new ArrayList<>();
-
-            NodeList elementList = document.getDocumentElement().getElementsByTagName("Server");
-            for (int i = 0; i < elementList.getLength(); i++) {
-                Element element = (Element)elementList.item(i);
-                PlexServer server = new PlexServer(this, element.getAttribute("address"), element.getAttribute("port"), element.getAttribute("updatedAt"), element.getAttribute("machineIdentifier"));
-                PlexServer localServer = new PlexServer(this, element.getAttribute("localAddresses"), "32400", element.getAttribute("updatedAt"), "local-" + element.getAttribute("machineIdentifier"));
-                if (localServer.canConnect()) {
-                    serverList.add(localServer);
-                } else if (server.canConnect()) {
-                    serverList.add(server);
+            try {
+                Document document = Request.Get("https://plex.tv/pms/servers.xml")
+                .addHeader("X-Plex-Product", PRODUCT_NAME)
+                .addHeader("X-Plex-Version", PRODUCT_VERSION)
+                .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
+                .addHeader("X-Plex-Token", authToken)
+                .execute().handleResponse(responseHandler);
+                
+                if (document.getDocumentElement().getTagName() != "MediaContainer") {
+                    System.out.println("An error occured trying to get servers.");
+                    System.out.println(document.getTextContent()); //TODO check this.
+                    return null;
                 }
+                
+                List<PlexServer> serverList = new ArrayList<>();
+                
+                NodeList elementList = document.getDocumentElement().getElementsByTagName("Server");
+                for (int i = 0; i < elementList.getLength(); i++) {
+                    Element element = (Element)elementList.item(i);
+                    PlexServer server = new PlexServer(this, element.getAttribute("address"), element.getAttribute("port"), element.getAttribute("updatedAt"), element.getAttribute("machineIdentifier"));
+                    PlexServer localServer = new PlexServer(this, element.getAttribute("localAddresses"), "32400", element.getAttribute("updatedAt"), "local-" + element.getAttribute("machineIdentifier"));
+                    if (localServer.canConnect()) {
+                        serverList.add(localServer);
+                    } else if (server.canConnect()) {
+                        serverList.add(server);
+                    }
+                }
+                return serverList;
+            } catch (Exception e) {
+                System.out.println("Exception getting server list: " + e.toString());
+                e.printStackTrace(System.out);
+                return null;
             }
-            return serverList;
-        } catch (Exception e) {
-            System.out.println("Exception getting server list: " + e.toString());
-            e.printStackTrace(System.out);
-            return null;
+        }
+
+        private boolean testAuth(String authToken) {
+            try {
+                Document document = Request.Get("https://plex.tv/pms/servers.xml")
+                .addHeader("X-Plex-Product", PRODUCT_NAME)
+                .addHeader("X-Plex-Version", PRODUCT_VERSION)
+                .addHeader("X-Plex-Client-Identifier", CLIENT_ID)
+                .addHeader("X-Plex-Token", authToken)
+                .execute().handleResponse(responseHandler);
+                
+                if (document.getDocumentElement().getTagName() != "MediaContainer") {
+                    return false;
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        
+        public Map<String, String> getHeaders() {
+            Map<String, String> map = new HashMap<>();
+            map.put("X-Plex-Product", PRODUCT_NAME);
+            map.put("X-Plex-Version", PRODUCT_VERSION);
+            map.put("X-Plex-Client-Identifier", CLIENT_ID);
+            if (authToken != null) map.put("X-Plex-Token", authToken);
+            return map;
+        }
+        
+        public ResponseHandler<Document> getResponseHandler() {
+            return responseHandler;
+        }
+
+        public boolean isAuthenticated() {
+            return authToken != null;
+        }
+
+        public String getAuthToken() {
+            return authToken;
         }
     }
-
-    public Map<String, String> getHeaders() {
-        Map<String, String> map = new HashMap<>();
-        map.put("X-Plex-Product", PRODUCT_NAME);
-        map.put("X-Plex-Version", PRODUCT_VERSION);
-        map.put("X-Plex-Client-Identifier", CLIENT_ID);
-        map.put("X-Plex-Token", AUTH_TOKEN);
-        return map;
-    }
-
-    public ResponseHandler<Document> getResponseHandler() {
-        return responseHandler;
-    }
-}

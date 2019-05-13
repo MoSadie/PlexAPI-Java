@@ -39,10 +39,11 @@ public class PlexServer {
 
     public String getUrl(String suffix, boolean includeToken) {
         return "http://" + address + ":" + port + suffix +
-            (includeToken ? "?X-Plex-Token=" + plex.getHeaders().get("X-Plex-Token") : "");
+            (includeToken && plex.isAuthenticated() ? "?X-Plex-Token=" + plex.getAuthToken() : "");
     }
 
     public boolean canConnect() {
+        if (!plex.isAuthenticated()) return false;
         try {
             Document document = Request.Get(getUrl("", true)).execute().handleResponse(plex.getResponseHandler());
             return document != null && document.getDocumentElement().getTagName().equals("MediaContainer");
@@ -52,6 +53,9 @@ public class PlexServer {
     }
 
     public List<PlexLibrary> getLibraries() {
+        if (!plex.isAuthenticated()) {
+            return new ArrayList<PlexLibrary>();
+        }
         Map<String, String> headers = plex.getHeaders();
         Request request = Request.Get(getUrl("/library/sections"));
         Document document;
@@ -82,6 +86,9 @@ public class PlexServer {
     }
 
     public List<PlexMusicTrack> searchTracks(String query) {
+        if (!plex.isAuthenticated()) {
+            return new ArrayList<PlexMusicTrack>();
+        }
         Map<String, String> headers = plex.getHeaders();
         String encodedQuery = query;
         try {
