@@ -115,7 +115,7 @@ public class PlexServer {
         for (int i = 0; i < nodeList.getLength(); i++) {
             Element element = (Element)nodeList.item(i);
             String url = element.getElementsByTagName("Part").item(0).getAttributes().getNamedItem("key").getNodeValue();
-            PlexMusicTrack track = new PlexMusicTrack(this, element.getAttribute("title"), element.getAttribute("originalTitle"), url);
+            PlexMusicTrack track = new PlexMusicTrack(this, element.getAttribute("title"), element.getAttribute("grandparentTitle"), url);
             tracks.add(track);
         }
 
